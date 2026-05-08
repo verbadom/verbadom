@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Калькулятор 3D-паркану VerbaDom</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:18px;color:#1a1a1a;background:#fff;}
+.vd{width:100%;}
+.vd-header{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:2px solid #ddd;}
+.vd-logo{background:#1a4a2e;color:#6fcf97;font-size:13px;font-weight:700;padding:8px 11px;border-radius:8px;letter-spacing:.04em;flex-shrink:0;}
+.vd-h1{font-size:20px;font-weight:700;color:#1a1a1a;line-height:1.25;}
+.vd-h1 span{font-size:14px;font-weight:400;color:#555;display:block;margin-top:2px;}
+.vd-body{display:flex;flex-direction:row;width:100%;}
+.vd-left{flex:1;padding:20px;border-right:1px solid #ddd;min-width:0;}
+.vd-right{flex:1;padding:20px;background:#f5f5f3;min-width:0;}
+@media(max-width:767px){
+  .vd-body{flex-direction:column;}
+  .vd-left{border-right:none;border-bottom:2px solid #ddd;width:100%;}
+  .vd-right{width:100%;}
+  .inp,.sel{width:100%;}
+  .copy-btn,.reset-btn{width:100%;}
+  .radio-grid{grid-template-columns:1fr 1fr;}
+  .col-labels,.gate-row{grid-template-columns:1fr 1fr 70px 52px;}
+  .add-btn{width:100%;}
+}
+.loading-overlay{display:flex;align-items:center;justify-content:center;padding:60px;font-size:18px;color:#666;gap:12px;}
+.spinner{width:28px;height:28px;border:3px solid #ddd;border-top-color:#1a4a2e;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+.sec-title{font-size:20px;font-weight:700;color:#1a1a1a;margin-bottom:16px;}
+.fld{margin-bottom:18px;}
+.lbl{display:block;font-size:17px;font-weight:700;color:#222;margin-bottom:9px;line-height:1.4;}
+.hint{font-size:14px;color:#555;margin-top:4px;display:block;}
+.err-msg{display:none;font-size:14px;color:#c0392b;margin-top:5px;font-weight:700;}
+.err-msg.show{display:block;}
+.inp{width:100%;height:54px;padding:0 16px;border:2px solid #ccc;border-radius:10px;background:#fff;color:#1a1a1a;font-family:Arial,sans-serif;font-size:18px;outline:none;transition:border-color .15s;}
+.inp:focus{border-color:#1a4a2e;}
+.inp.err{border-color:#c0392b !important;}
+.sel-wrap{position:relative;}
+.sel-wrap::after{content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;color:#666;font-size:16px;}
+.sel{width:100%;height:54px;padding:0 16px;border:2px solid #ccc;border-radius:10px;background:#fff;color:#1a1a1a;font-family:Arial,sans-serif;font-size:18px;outline:none;cursor:pointer;appearance:none;transition:border-color .15s;}
+.sel:focus{border-color:#1a4a2e;}
+.sel.err{border-color:#c0392b !important;}
+.radio-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.radio-btn input{display:none;}
+.radio-btn label{display:flex;align-items:center;justify-content:center;height:54px;border:2px solid #ccc;border-radius:10px;background:#fff;font-size:17px;font-weight:500;color:#333;cursor:pointer;transition:all .15s;user-select:none;}
+.radio-btn input:checked+label{background:#1a4a2e;border-color:#1a4a2e;color:#6fcf97;font-weight:700;}
+.radio-group-err .radio-btn label{border-color:#c0392b !important;}
+.divider{height:2px;background:#ddd;margin:22px 0;}
+.gates-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.add-btn{height:48px;padding:0 20px;border:2px solid #1a4a2e;border-radius:10px;background:#fff;color:#1a4a2e;font-family:Arial,sans-serif;font-size:16px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s;}
+.add-btn:hover{background:#edf7f1;}
+.col-labels{display:grid;grid-template-columns:2fr 1.4fr 0.9fr 60px;gap:6px;margin-bottom:6px;}
+.col-lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#666;}
+.gate-row{display:grid;grid-template-columns:2fr 1.4fr 0.9fr 60px;gap:6px;margin-bottom:8px;align-items:center;}
+.g-sel{height:50px;width:100%;padding:0 8px;border:2px solid #ccc;border-radius:10px;background:#fff;color:#1a1a1a;font-size:15px;outline:none;cursor:pointer;appearance:none;font-family:Arial,sans-serif;}
+.g-sel:focus{border-color:#1a4a2e;}
+.g-sel:disabled{opacity:.4;}
+.g-sel.err{border-color:#c0392b !important;}
+.g-inp{height:50px;width:100%;padding:0 10px;border:2px solid #ccc;border-radius:10px;background:#fff;color:#1a1a1a;font-size:16px;outline:none;font-family:Arial,sans-serif;}
+.g-inp:focus{border-color:#1a4a2e;}
+.del-btn{width:56px;height:52px;border:2px solid #ccc;border-radius:10px;background:#fff;color:#888;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:24px;font-weight:700;transition:all .15s;}
+.del-btn:hover{border-color:#c0392b;color:#c0392b;background:#fff5f5;}
+.empty-gates{font-size:16px;color:#888;font-style:italic;padding:4px 0;}
+.warn-box{display:none;font-size:15px;color:#c0392b;background:#fff0f0;padding:10px 14px;border-radius:8px;border:1px solid #f5c6c6;margin-top:6px;font-weight:700;line-height:1.5;}
+.warn-box.show{display:block;}
+.r-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;color:#999;text-align:center;gap:14px;}
+.r-empty p{font-size:17px;line-height:1.5;color:#888;}
+.r-block{display:none;}
+.r-block.show{display:block;}
+.r-title{font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:16px;}
+.detail-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:16px 0;border-bottom:1px solid #ddd;align-items:start;}
+.detail-row:last-of-type{border-bottom:none;}
+.d-name{font-size:18px;font-weight:700;color:#111;line-height:1.35;}
+.d-params{font-size:15px;color:#333;margin-top:5px;line-height:1.5;}
+.d-price{text-align:right;flex-shrink:0;}
+.d-total{font-size:19px;font-weight:700;color:#111;white-space:nowrap;}
+.d-unit{font-size:15px;color:#333;margin-top:3px;white-space:nowrap;}
+.pending-msg{font-size:17px;color:#333;text-align:center;padding:20px;background:#fff;border:1px dashed #ccc;border-radius:10px;margin-top:16px;line-height:1.6;}
+.total-box{background:#1a4a2e;border-radius:12px;padding:20px 24px;margin-top:18px;display:flex;align-items:center;justify-content:space-between;animation:fadeUp .25s ease;}
+.total-lbl{font-size:15px;font-weight:700;color:#6fcf97;letter-spacing:.05em;text-transform:uppercase;}
+.total-amt{font-size:30px;font-weight:700;color:#fff;}
+.copy-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:60px;background:#0056b3 !important;border:none;border-radius:10px;color:#fff !important;font-family:Arial,sans-serif;font-size:20px;font-weight:700;cursor:pointer;margin-top:18px;transition:background .15s;}
+.copy-btn:hover:not(:disabled){background:#004094 !important;}
+.copy-btn:disabled{opacity:.38;cursor:not-allowed;}
+.copy-btn.ok{background:#27ae60 !important;}
+.reset-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;border:2px solid #ccc;border-radius:10px;background:#fff;color:#555;font-family:Arial,sans-serif;font-size:18px;cursor:pointer;margin-top:10px;transition:all .15s;}
+.reset-btn:hover{border-color:#c0392b;color:#c0392b;}
+.price-source{font-size:13px;color:#aaa;text-align:right;margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="vd">
+  <div class="vd-header">
+    <div class="vd-logo">VD</div>
+    <div class="vd-h1">Калькулятор 3D-паркану VerbaDom<span>Розрахунок комплектації онлайн</span></div>
+  </div>
+  <div id="loadingState" class="loading-overlay">
+    <div class="spinner"></div>
+    Завантажуємо актуальні ціни...
+  </div>
+  <div id="mainContent" style="display:none">
+    <div class="vd-body">
+      <div class="vd-left">
+        <div class="sec-title">Параметри паркану</div>
+        <div class="fld">
+          <label class="lbl">Загальна довжина огорожі, включаючи хвіртки та ворота</label>
+          <input type="number" class="inp" id="totalLength" placeholder="Наприклад: 50" min="1" step="0.1">
+          <span class="hint">Вкажіть повну довжину в метрах</span>
+          <div class="err-msg" id="errLength">Вкажіть довжину огорожі</div>
+          <div class="warn-box" id="warnOpenings">Помилка: ширина прорізів більша за загальну довжину огорожі</div>
+        </div>
+        <div class="fld">
+          <label class="lbl">Кількість кутів (поворотів) вашої огорожі</label>
+          <input type="number" class="inp" id="corners" placeholder="0" min="0" step="1">
+        </div>
+        <div class="fld">
+          <label class="lbl">Товщина прута секцій</label>
+          <div class="sel-wrap">
+            <select class="sel" id="rodType">
+              <option value="">Оберіть товщину</option>
+              <option value="3x4">3 і 4 мм</option>
+              <option value="4">4 мм</option>
+            </select>
+          </div>
+          <div class="err-msg" id="errRod">Оберіть товщину прута</div>
+        </div>
+        <div class="fld">
+          <label class="lbl">Висота секції</label>
+          <div class="radio-grid" id="heightGroup">
+            <div class="radio-btn"><input type="radio" name="height" id="h1030" value="1030"><label for="h1030">1030 мм</label></div>
+            <div class="radio-btn"><input type="radio" name="height" id="h1230" value="1230"><label for="h1230">1230 мм</label></div>
+            <div class="radio-btn"><input type="radio" name="height" id="h1530" value="1530"><label for="h1530">1530 мм</label></div>
+            <div class="radio-btn"><input type="radio" name="height" id="h1730" value="1730"><label for="h1730">1730 мм</label></div>
+            <div class="radio-btn"><input type="radio" name="height" id="h2030" value="2030"><label for="h2030">2030 мм</label></div>
+            <div class="radio-btn"><input type="radio" name="height" id="h2400" value="2400"><label for="h2400">2400 мм</label></div>
+          </div>
+          <div class="err-msg" id="errHeight">Оберіть висоту секції</div>
+        </div>
+        <div class="fld">
+          <label class="lbl">Висота стовпів</label>
+          <div class="radio-grid" id="postGroup">
+            <div class="radio-btn"><input type="radio" name="post" id="p1500" value="1500"><label for="p1500">1500 мм</label></div>
+            <div class="radio-btn"><input type="radio" name="post" id="p1700" value="1700"><label for="p1700">1700 мм</label></div>
+            <div class="radio-btn"><input type="radio" name="post" id="p2000" value="2000"><label for="p2000">2000 мм</label></div>
+            <div class="radio-btn"><input type="radio" name="post" id="p2250" value="2250"><label for="p2250">2250 мм</label></div>
+            <div class="radio-btn"><input type="radio" name="post" id="p2500" value="2500"><label for="p2500">2500 мм</label></div>
+            <div class="radio-btn"><input type="radio" name="post" id="p3000" value="3000"><label for="p3000">3000 мм</label></div>
+          </div>
+          <div class="err-msg" id="errPost">Оберіть висоту стовпів</div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <div class="gates-hdr">
+            <div class="sec-title" style="margin-bottom:0">Ворота та калитки</div>
+            <button class="add-btn" onclick="addOpening()">+ Додати</button>
+          </div>
+          <div id="openingsList">
+            <div class="empty-gates" id="openingsEmpty">Немає воріт та калиток</div>
+          </div>
+        </div>
+      </div>
+      <div class="vd-right">
+        <div class="r-empty" id="resultEmpty">
+          <div style="font-size:52px;opacity:.2">🧮</div>
+          <p>Заповніть параметри<br>для розрахунку</p>
+        </div>
+        <div class="r-block" id="resultBlock">
+          <div class="r-title">Детальний розрахунок</div>
+          <div id="detailRows"></div>
+          <div id="totalArea"></div>
+          <button class="copy-btn" id="copyBtn" onclick="tryCopy()" disabled>
+            📋 <span id="copyBtnText">Скопіювати розрахунок</span>
+          </button>
+          <button class="reset-btn" onclick="resetAll()">↺ Очистити всі дані</button>
+          <div class="price-source" id="priceSource"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbw5bIyNCHqrOwol17IkMlK6LnyfHDdQJP4p1v2F78q42vYlhRm8q3ORfSof1y9pMqxK/exec';
+const FALLBACK={sections:{"3x4":{1030:[495,450],1230:[570,525],1530:[700,655],1730:[760,715],2030:[875,830],2400:[1125,1080]},"4":{1030:[620,575],1230:[715,670],1530:[880,835],1730:[970,925],2030:[1110,1065],2400:[1275,1230]}},posts:{1500:[250,243],1700:[280,268],2000:[325,318],2250:[365,358],2500:[405,393],3000:[510,468]},mounts:{standard:12},gates:{}};
+[["калитка",1030,1000,6060,6060],["калитка",1230,1000,6335,6335],["калитка",1530,1000,6700,6700],["калитка",1730,1000,7080,7080],["калитка",2030,1000,7585,7585],["калитка",2400,1000,8300,8300],["ворота_распашные",1230,3000,12840,12840],["ворота_распашные",1230,4000,14240,14240],["ворота_распашные",1230,5000,15850,15850],["ворота_распашные",1530,3000,14060,14060],["ворота_распашные",1530,4000,15500,15500],["ворота_распашные",1530,5000,19760,19760],["ворота_распашные",1730,3000,15235,15235],["ворота_распашные",1730,4000,16600,16600],["ворота_распашные",1730,5000,21270,21270],["ворота_распашные",2030,3000,16500,16500],["ворота_распашные",2030,4000,18550,18550],["ворота_распашные",2030,5000,23590,23590],["ворота_распашные",2030,6000,27470,27470],["ворота_распашные",2400,3000,18600,18600],["ворота_распашные",2400,4000,23620,23620],["ворота_распашные",2400,5000,26600,26600],["ворота_распашные",2400,6000,30025,30025],["ворота_откатные",1530,3000,28000,28000],["ворота_откатные",1530,4000,29500,29500],["ворота_откатные",1530,5000,36430,36430],["ворота_откатные",1730,3000,28590,28590],["ворота_откатные",1730,4000,30670,30670],["ворота_откатные",1730,5000,38270,38270],["ворота_откатные",2030,3000,30700,30700],["ворота_откатные",2030,4000,31700,31700],["ворота_откатные",2030,5000,39530,39530],["ворота_откатные",2030,6000,44370,44370],["ворота_откатные",2400,3000,32580,32580],["ворота_откатные",2400,4000,34300,34300],["ворота_откатные",2400,5000,41430,41430],["ворота_откатные",2400,6000,46800,46800]].forEach(([t,h,w,r,o])=>{FALLBACK.gates[`${t}|${h}|${w}`]=[r,o];});
+let PRICES=null,openings=[],oid=0,lastResult=null,validated=false;
+const $=id=>document.getElementById(id);
+const getH=()=>{const r=document.querySelector('input[name="height"]:checked');return r?parseInt(r.value):null;};
+const getP=()=>{const r=document.querySelector('input[name="post"]:checked');return r?parseInt(r.value):null;};
+const pi=q=>q>=10?1:0;
+const fmt=n=>n.toLocaleString('uk-UA')+' грн';
+const fmtM=mm=>{const v=mm/1000;return(Number.isInteger(v)?v:parseFloat(v.toFixed(2)))+' м';};
+const fmtW=w=>(w/1000).toFixed(1)+' м';
+const rodLabel=r=>r==='3x4'?'3 і 4 мм':'4 мм';
+const typeLabel=t=>t==='Калитка'?'Хвіртка':t==='Розпашні ворота'?'Розпашні ворота':'Відкатні ворота';
+const typeKeyMap={'Калитка':'калитка','Розпашні ворота':'ворота_распашные','Відкатні ворота':'ворота_откатные'};
+const MPH={1030:2,1230:3,1530:3,1730:3,2030:4,2400:5};
+function widthOpts(type,h){if(!type||!h)return[];if(type==='Калитка')return[1000];if(type==='Розпашні ворота'){if(h>=1230&&h<=1730)return[3000,4000,5000];if(h>=2030)return[3000,4000,5000,6000];}if(type==='Відкатні ворота'){if(h>=1530&&h<=1730)return[3000,4000,5000];if(h>=2030)return[3000,4000,5000,6000];}return[];}
+function setE(el,msg,on){el.classList.toggle('err',on);msg.classList.toggle('show',on);}
+function setGE(g,m,on){g.classList.toggle('radio-group-err',on);m.classList.toggle('show',on);}
+function dRow(name,params,qty,up,total){return`<div class="detail-row"><div><div class="d-name">${name}</div>${params?`<div class="d-params">${params}</div>`:''}</div><div class="d-price"><div class="d-total">${fmt(total)}</div><div class="d-unit">${qty} × ${up.toLocaleString('uk-UA')} грн</div></div></div>`;}
+const hasIncomplete=()=>openings.some(op=>op.type&&!op.width);
+function getSecPrice(rod,h){return(PRICES.sections[rod]&&PRICES.sections[rod][h])||[0,0];}
+function getPostPrice(h){return PRICES.posts[h]||[0,0];}
+function getGatePrice(type,h,w){return PRICES.gates[`${typeKeyMap[type]}|${h}|${w}`]||[0,0];}
+function validate(force){const len=parseFloat($('totalLength').value)||0;const rod=$('rodType').value;const sH=getH(),pH=getP();if(force||validated){setE($('totalLength'),$('errLength'),!len);setE($('rodType'),$('errRod'),!rod);setGE($('heightGroup'),$('errHeight'),!sH);setGE($('postGroup'),$('errPost'),!pH);}return !!(len&&rod&&sH&&pH);}
+function calculate(force){
+  if(!PRICES)return;
+  validated=validated||!!force;const ok=validate(force);const btn=$('copyBtn');
+  if(!ok){$('resultEmpty').style.display='';$('resultBlock').classList.remove('show');lastResult=null;btn.disabled=true;return;}
+  const len=parseFloat($('totalLength').value)||0;const corners=parseInt($('corners').value)||0;const rod=$('rodType').value;const sH=getH(),pH=getP();
+  let openW=0,openCount=0,gatesData=[],openOk=true;
+  openings.forEach(op=>{if(!op.type)return;if(!op.width){openOk=false;return;}openW+=op.width/1000*op.qty;openCount+=op.qty;const gp=getGatePrice(op.type,sH,op.width);gatesData.push({type:op.type,w:op.width,h:sH,qty:op.qty,price:gp[pi(op.qty)],sum:gp[pi(op.qty)]*op.qty});});
+  const overflow=openW>len;$('warnOpenings').classList.toggle('show',overflow);
+  if(overflow){$('totalLength').classList.add('err');$('resultEmpty').style.display='';$('resultBlock').classList.remove('show');lastResult=null;btn.disabled=true;return;}
+  else{if(!$('errLength').classList.contains('show'))$('totalLength').classList.remove('err');}
+  $('resultEmpty').style.display='none';$('resultBlock').classList.add('show');
+  const mph=MPH[sH];const sections=Math.ceil((len-openW)/2.5);const posts=sections+1-openCount;const mounts=(posts+openCount*2+corners)*mph;
+  const sp=getSecPrice(rod,sH);const secPrice=sp[pi(sections)];
+  const pp=getPostPrice(pH);const postPrice=pp[pi(posts)];
+  const mountPrice=PRICES.mounts.standard;
+  const secSum=secPrice*sections,postSum=postPrice*posts,mountSum=mountPrice*mounts;
+  const gSum=gatesData.reduce((a,g)=>a+g.sum,0);const total=secSum+postSum+mountSum+gSum;
+  const rl=rodLabel(rod);let rows='';
+  rows+=dRow(`Секції паркану (Ширина: 2.5 м, Прут: ${rl})`,`Висота: ${fmtM(sH)}`,sections,secPrice,secSum);
+  rows+=dRow('Стовпи',`Висота: ${fmtM(pH)}`,posts,postPrice,postSum);
+  rows+=dRow('Кріплення',`Кількість: ${mounts} шт.`,mounts,mountPrice,mountSum);
+  gatesData.forEach(g=>{rows+=dRow(typeLabel(g.type),`Ширина: ${fmtW(g.w)} · Висота: ${fmtM(g.h)}`,g.qty,g.price,g.sum);});
+  $('detailRows').innerHTML=rows;
+  if(hasIncomplete()||!openOk){$('totalArea').innerHTML=`<div class="pending-msg">Заповніть параметри воріт та калиток для отримання ціни</div>`;btn.disabled=true;lastResult=null;}
+  else{$('totalArea').innerHTML=`<div class="total-box"><span class="total-lbl">Разом</span><span class="total-amt">${total.toLocaleString('uk-UA')} грн</span></div>`;btn.disabled=false;lastResult={sH,pH,sections,posts,mounts,secPrice,secSum,postPrice,postSum,mountPrice,mountSum,gatesData,total,rod,rl};}
+}
+function tryCopy(){
+  if(!lastResult)return;const r=lastResult;
+  let txt='Попередній розрахунок комплектації\n————————————————————\n';
+  txt+=`Висота секції: ${fmtM(r.sH)}\nВисота стовпів: ${fmtM(r.pH)}\nТовщина прута: ${r.rl}\n————————————————————\n`;
+  txt+=`Секції паркану (Ширина: 2.5 м, Прут: ${r.rl}): ${r.sections} шт. × ${r.secPrice.toLocaleString('uk-UA')} грн = ${r.secSum.toLocaleString('uk-UA')} грн\n`;
+  txt+=`Стовпи: ${r.posts} шт. × ${r.postPrice.toLocaleString('uk-UA')} грн = ${r.postSum.toLocaleString('uk-UA')} грн\n`;
+  txt+=`Кріплення (${r.mounts} шт.): ${r.mounts} × ${r.mountPrice.toLocaleString('uk-UA')} грн = ${r.mountSum.toLocaleString('uk-UA')} грн\n`;
+  if(r.gatesData&&r.gatesData.length){txt+='————————————————————\n';r.gatesData.forEach(g=>{txt+=`${typeLabel(g.type)} (Ширина: ${fmtW(g.w)}, Висота: ${fmtM(g.h)}) — ${g.qty} шт. × ${g.price.toLocaleString('uk-UA')} грн = ${g.sum.toLocaleString('uk-UA')} грн\n`;});}
+  txt+=`————————————————————\nРАЗОМ: ${r.total.toLocaleString('uk-UA')} грн`;
+  navigator.clipboard.writeText(txt).then(()=>{const b=$('copyBtn'),t=$('copyBtnText');b.classList.add('ok');t.textContent='Скопійовано!';setTimeout(()=>{b.classList.remove('ok');t.textContent='Скопіювати розрахунок';},2500);}).catch(()=>alert('Не вдалося скопіювати.'));
+}
+function renderOpenings(){
+  const list=$('openingsList'),empty=$('openingsEmpty'),h=getH();
+  while(list.firstChild&&list.firstChild!==empty)list.removeChild(list.firstChild);
+  if(!openings.length){empty.style.display='';return;}
+  empty.style.display='none';
+  const hdr=document.createElement('div');hdr.className='col-labels';
+  hdr.innerHTML='<span class="col-lbl">Тип</span><span class="col-lbl">Ширина</span><span class="col-lbl">Кільк.</span><span></span>';
+  list.insertBefore(hdr,empty);
+  openings.forEach((op,i)=>{
+    const wo=widthOpts(op.type,h);const wErr=op.type&&!op.width&&validated;
+    const row=document.createElement('div');row.className='gate-row';
+    row.innerHTML=`<select class="g-sel" onchange="updOp(${i},'type',this.value)"><option value="">Тип</option>${['Калитка','Розпашні ворота','Відкатні ворота'].map(t=>`<option value="${t}"${op.type===t?' selected':''}>${t}</option>`).join('')}</select>`+`<select class="g-sel${wErr?' err':''}" onchange="updOp(${i},'width',parseInt(this.value))"${wo.length===0?' disabled':''}><option value="">Ширина</option>${wo.map(w=>`<option value="${w}"${op.width===w?' selected':''}>${fmtW(w)}</option>`).join('')}</select>`+`<input type="number" class="g-inp" min="1" step="1" value="${op.qty||1}" onchange="updOp(${i},'qty',parseInt(this.value)||1)">`+`<button class="del-btn" onclick="delOp(${i})">✕</button>`;
+    list.insertBefore(row,empty);
+  });
+}
+function addOpening(){openings.push({id:oid++,type:'',width:null,qty:1});renderOpenings();calculate();}
+function delOp(i){openings.splice(i,1);renderOpenings();calculate();}
+function updOp(i,f,v){openings[i][f]=v;if(f==='type')openings[i].width=null;renderOpenings();calculate();}
+function resetAll(){$('totalLength').value='';$('corners').value='';$('rodType').value='';document.querySelectorAll('input[name="height"]').forEach(r=>r.checked=false);document.querySelectorAll('input[name="post"]').forEach(r=>r.checked=false);openings=[];lastResult=null;validated=false;setE($('totalLength'),$('errLength'),false);setE($('rodType'),$('errRod'),false);setGE($('heightGroup'),$('errHeight'),false);setGE($('postGroup'),$('errPost'),false);$('warnOpenings').classList.remove('show');renderOpenings();$('resultEmpty').style.display='';$('resultBlock').classList.remove('show');$('copyBtn').disabled=true;}
+['totalLength','corners'].forEach(id=>{const el=$(id);el.addEventListener('focus',()=>{if(el.value==='0')el.value='';});el.addEventListener('mousedown',()=>{if(el.value==='0')el.value='';});el.addEventListener('touchstart',()=>{if(el.value==='0')el.value='';},{passive:true});el.addEventListener('blur',()=>{calculate();});el.addEventListener('input',calculate);});
+$('rodType').addEventListener('change',()=>{if(validated)setE($('rodType'),$('errRod'),!$('rodType').value);calculate();});
+document.querySelectorAll('input[name="height"]').forEach(r=>r.addEventListener('change',()=>{if(validated)setGE($('heightGroup'),$('errHeight'),false);renderOpenings();calculate();}));
+document.querySelectorAll('input[name="post"]').forEach(r=>r.addEventListener('change',()=>{if(validated)setGE($('postGroup'),$('errPost'),false);calculate();}));
+function initWithPrices(prices,fromCache){PRICES=prices;$('loadingState').style.display='none';$('mainContent').style.display='';$('priceSource').textContent=fromCache?'⚡ Резервні ціни':'✅ Ціни актуальні з Google Таблиці';renderOpenings();}
+fetch(API_URL).then(r=>r.json()).then(data=>initWithPrices(data,false)).catch(()=>initWithPrices(FALLBACK,true));
+</script>
+</body>
+</html>
